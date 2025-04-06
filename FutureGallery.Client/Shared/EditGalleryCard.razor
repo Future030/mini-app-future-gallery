@@ -1,0 +1,13 @@
+<div class="edit-card">
+    <img src="@ImageUrl" alt="@Title" class="edit-card-img" />
+    <div class="edit-card-content">
+        <strong>@Title</strong>
+        <div class="meta">@Metadata</div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Metadata { get; set; } = string.Empty;
+    [Parameter] public string ImageUrl { get; set; } = string.Empty;
+}

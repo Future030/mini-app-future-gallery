@@ -1,0 +1,31 @@
+@using System.Globalization
+
+<div class="nft-card @(Liked ? "liked" : "")" @onclick="ToggleLike">
+    <img src="@ImageUrl" alt="NFT Image" class="nft-image" />
+    <div class="nft-info">
+        <h3 class="nft-title">@Title.ToUpperInvariant()</h3>
+        <p class="nft-meta">@Metadata</p>
+        <div class="nft-actions">
+            <span class="like-button">
+                <i class="fas fa-heart"></i>
+                @LikeCount
+            </span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Metadata { get; set; } = string.Empty;
+    [Parameter] public string ImageUrl { get; set; } = string.Empty;
+    [Parameter] public int LikeCount { get; set; }
+    [Parameter] public bool Liked { get; set; }
+    [Parameter] public EventCallback<bool> OnLikeToggled { get; set; }
+
+    private void ToggleLike()
+    {
+        Liked = !Liked;
+        LikeCount += Liked ? 1 : -1;
+        OnLikeToggled.InvokeAsync(Liked);
+    }
+}

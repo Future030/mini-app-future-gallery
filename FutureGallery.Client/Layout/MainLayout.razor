@@ -1,16 +1,20 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+<div class="main-layout">
+    <header class="gallery-header">
+        <h1>FUTURE GALLERY</h1>
+    </header>
 
-        <article class="content px-4">
-            @Body
-        </article>
+    <main class="content">
+        @Body
     </main>
+
+    <footer class="featured-gallery">
+        <h3>FEATURED GALLERY</h3>
+        <div class="featured-items">
+            <!-- Static featured content can go here -->
+            <p>🌟 Featured Profile: lukso</p>
+            <p>🖼️ Featured NFT: "Dreams on Chain"</p>
+        </div>
+    </footer>
 </div>

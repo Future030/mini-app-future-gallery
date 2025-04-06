@@ -1,0 +1,90 @@
+@page "/edit"
+@layout MainLayout
+
+<h2>Edit My Gallery</h2>
+
+<RadzenDropZoneContainer TItem="NftItem"
+                         Data="@AllNfts"
+                         ItemSelector="@ItemSelector"
+                         Drop="@OnDrop">
+
+    <ChildContent>
+        <RadzenStack Orientation="Orientation.Horizontal"
+                     Gap="1rem"
+                     Wrap="FlexWrap.Wrap"
+                     class="rz-p-12">
+
+            <RadzenDropZone Value="@( "Selected" )"
+                            class="rz-display-flex rz-flex-column rz-background-color-info-lighter rz-border-info-light rz-border-radius-2 rz-p-4"
+                            Style="flex: 1; gap: 1rem;">
+                <RadzenText Text="Selected NFTs (Max 8)" TextStyle="TextStyle.Subtitle2" />
+            </RadzenDropZone>
+
+            <RadzenDropZone Value="@( "Available" )"
+                            class="rz-display-flex rz-flex-column rz-background-color-warning-lighter rz-border-warning-light rz-border-radius-2 rz-p-4"
+                            Style="flex: 1; gap: 1rem;">
+                <RadzenText Text="Available NFTs" TextStyle="TextStyle.Subtitle2" />
+            </RadzenDropZone>
+
+        </RadzenStack>
+    </ChildContent>
+
+    <Template Context="item">
+        <EditGalleryCard Title="@item.Title"
+                         Metadata="@item.Metadata"
+                         ImageUrl="@item.ImageUrl" />
+    </Template>
+</RadzenDropZoneContainer>
+
+<!-- Save Button -->
+<div class="save-button" style="margin-top: 2rem;">
+    <RadzenButton Text="💾 Save Gallery"
+                  Click="@SaveGallery"
+                  Disabled="@(!SelectedNfts.Any())" />
+</div>
+
+@code {
+    private List<NftItem> AllNfts = new()
+    {
+        new() { Title = "WAVES", Metadata = "Artist: Luma", ImageUrl = "assets/nft1.jpg", LikeCount = 42, Status = "Available" },
+        new() { Title = "NEON BLOOM", Metadata = "Artist: Jay", ImageUrl = "assets/nft2.jpg", LikeCount = 12, Status = "Available" },
+        new() { Title = "THE DREAMER", Metadata = "Artist: Sora", ImageUrl = "assets/nft3.jpg", LikeCount = 7, Status = "Available" },
+        new() { Title = "DARKNET", Metadata = "Artist: Meka", ImageUrl = "assets/nft4.jpg", LikeCount = 66, Status = "Available" },
+        new() { Title = "GOLD LEAF", Metadata = "Artist: Arno", ImageUrl = "assets/nft5.jpg", LikeCount = 99, Status = "Available" },
+        new() { Title = "CRYPTO BLOOM", Metadata = "Artist: Nyra", ImageUrl = "assets/nft6.jpg", LikeCount = 21, Status = "Available" },
+        new() { Title = "PLASMA CORE", Metadata = "Artist: Toshi", ImageUrl = "assets/nft7.jpg", LikeCount = 5, Status = "Available" },
+        new() { Title = "GHOST SEASON", Metadata = "Artist: Xone", ImageUrl = "assets/nft8.jpg", LikeCount = 13, Status = "Available" }
+    };
+
+    private List<NftItem> SelectedNfts => AllNfts.Where(n => n.Status == "Selected").ToList();
+
+    private bool ItemSelector(NftItem item, RadzenDropZone<NftItem> zone)
+        => item.Status == (string)zone.Value;
+
+    private void OnDrop(RadzenDropZoneItemEventArgs<NftItem> args)
+    {
+        if (args.FromZone != args.ToZone)
+        {
+            args.Item.Status = (string)args.ToZone.Value;
+        }
+
+        // Optional: reorder items when dropped within same zone
+        if (args.ToItem != null && args.ToItem != args.Item)
+        {
+            AllNfts.Remove(args.Item);
+            var insertIndex = AllNfts.IndexOf(args.ToItem);
+            AllNfts.Insert(insertIndex, args.Item);
+        }
+    }
+
+    private void SaveGallery()
+    {
+        Console.WriteLine("Saving gallery...");
+        foreach (var nft in SelectedNfts)
+        {
+            Console.WriteLine($"- {nft.Title}");
+        }
+
+        // TODO: Step 6 – On-chain call to updateGalleryBulk
+    }
+}
