@@ -1,0 +1,28 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Radzen Studio
+.radzen/
+
+# Node.js / Hardhat
+node_modules/
+artifacts/
+cache/
+dist/
+typechain/
+.env
+
+# Blazor WASM
+wwwroot/contracts/*.abi.json
+wwwroot/contracts/*.address.json
+
+# OS-specific
+.DS_Store
+Thumbs.db
