@@ -12,18 +12,4 @@
     <PackageReference Include="Radzen.Blazor" Version="6.4.0" />
   </ItemGroup>
 
-  <Target Name="ReplaceCacheBustVersion" AfterTargets="Build">
-    <PropertyGroup>
-      <VersionString>$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</VersionString>
-    </PropertyGroup>
-    <Message Text="Injecting cache-bust version: $(VersionString)" />
-    <ReadLinesFromFile File="wwwroot/index.html">
-      <Output TaskParameter="Lines" ItemName="IndexHtmlLines" />
-    </ReadLinesFromFile>
-    <WriteLinesToFile
-            File="wwwroot/index.html"
-            Lines="@(IndexHtmlLines->Replace('__CACHEBUST__', '$(VersionString)'))"
-            Overwrite="true" />
-  </Target>
-
 </Project>

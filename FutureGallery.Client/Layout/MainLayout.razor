@@ -58,11 +58,23 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _dotNetRef = DotNetObjectReference.Create(this);
-        await WaitForJsInterop();
+        if (!await IsLuksoAvailable()) return;
 
+        _dotNetRef = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("lukso.registerBlazorInterop", _dotNetRef);
         await UpdateUPsAsync();
+    }
+
+    private async Task<bool> IsLuksoAvailable()
+    {
+        try
+        {
+            return await JS.InvokeAsync<bool>("eval", "typeof window.lukso !== 'undefined'");
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public void Dispose()
@@ -90,26 +102,10 @@
         }
     }
 
-    private async Task WaitForJsInterop()
-    {
-        var maxTries = 20;
-        var delay = 250;
-
-        for (int i = 0; i < maxTries; i++)
-        {
-            var luksoAvailable = await JS.InvokeAsync<bool>("eval", "typeof window.lukso !== 'undefined'");
-            if (luksoAvailable)
-                return;
-
-            await Task.Delay(delay);
-        }
-
-        throw new Exception("⚠️ Timeout waiting for 'lukso' object in layout.");
-    }
-
     private void ToggleMode()
     {
         var target = IsEditMode ? "/" : "/edit";
         Navigation.NavigateTo(target);
     }
+
 }

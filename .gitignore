@@ -26,3 +26,6 @@ wwwroot/contracts/*.address.json
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# Ignore ABI copy in contracts folder (not the one in frontend)
+FutureGallery.Contracts/*ABI.json

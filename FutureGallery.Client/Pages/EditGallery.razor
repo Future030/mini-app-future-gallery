@@ -41,18 +41,7 @@
 
 @code {
 
-    private List<NftItem> AllNfts = new()
-    {
-        new() { Title = "WAVES", Metadata = "Artist: Luma", ImageUrl = "assets/nft1.jpg", LikeCount = 42, Status = "Available" },
-        new() { Title = "NEON BLOOM", Metadata = "Artist: Jay", ImageUrl = "assets/nft2.jpg", LikeCount = 12, Status = "Available" },
-        new() { Title = "THE DREAMER", Metadata = "Artist: Sora", ImageUrl = "assets/nft3.jpg", LikeCount = 7, Status = "Available" },
-        new() { Title = "DARKNET", Metadata = "Artist: Meka", ImageUrl = "assets/nft4.jpg", LikeCount = 66, Status = "Available" },
-        new() { Title = "GOLD LEAF", Metadata = "Artist: Arno", ImageUrl = "assets/nft5.jpg", LikeCount = 99, Status = "Available" },
-        new() { Title = "CRYPTO BLOOM", Metadata = "Artist: Nyra", ImageUrl = "assets/nft6.jpg", LikeCount = 21, Status = "Available" },
-        new() { Title = "PLASMA CORE", Metadata = "Artist: Toshi", ImageUrl = "assets/nft7.jpg", LikeCount = 5, Status = "Available" },
-        new() { Title = "GHOST SEASON", Metadata = "Artist: Xone", ImageUrl = "assets/nft8.jpg", LikeCount = 13, Status = "Available" }
-    };
-
+    private List<NftItem> AllNfts = new();
     private List<NftItem> SelectedNfts => AllNfts.Where(n => n.Status == "Selected").ToList();
 
     [Inject] private IJSRuntime JS { get; set; } = default!;
@@ -61,7 +50,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await WaitForJsInterop();
+        var isLukso = await JS.InvokeAsync<bool>("eval", "typeof window.lukso !== 'undefined'");
+        if (!isLukso)
+        {
+            Console.WriteLine("⚠️ Not inside LUKSO Grid – skipping EditGallery init.");
+            return;
+        }
 
         try
         {
@@ -70,27 +64,13 @@
 
             Console.WriteLine($"🧑 VisitorUP: {VisitorUP}");
             Console.WriteLine($"🏠 HostUP: {HostUP}");
+
+            AllNfts = await JS.InvokeAsync<List<NftItem>>("lukso.loadMockNfts");
         }
         catch (JSException jsEx)
         {
             Console.Error.WriteLine("🚨 JS error during UP fetch: " + jsEx.Message);
         }
-    }
-
-    private async Task WaitForJsInterop()
-    {
-        var maxTries = 20;
-        var delay = 250;
-
-        for (int i = 0; i < maxTries; i++)
-        {
-            var luksoAvailable = await JS.InvokeAsync<bool>("eval", "typeof window.lukso !== 'undefined'");
-            if (luksoAvailable) return;
-
-            await Task.Delay(delay);
-        }
-
-        throw new Exception("⚠️ Timeout waiting for 'lukso' object in JS.");
     }
 
     private bool ItemSelector(NftItem item, RadzenDropZone<NftItem> zone) =>
@@ -109,11 +89,21 @@
         }
     }
 
-    private void SaveGallery()
+    private async void SaveGallery()
     {
-        Console.WriteLine("Saving gallery...");
-        foreach (var nft in SelectedNfts)
-            Console.WriteLine($"- {nft.Title}");
+        var items = SelectedNfts.Select(nft => new
+        {
+            tokenContract = "0x1234567890abcdef...", // 🔁 replace with actual logic later
+            tokenId = "0x" + Guid.NewGuid().ToString("N").PadRight(64, '0') // 🔁 placeholder
+        }).ToList();
+
+        var result = await JS.InvokeAsync<bool>(
+            "lukso.saveGallery",
+            "0x863382cD5B07e9Cd70f198Dec5D04e4cB90f035c", // ✅ your deployed contract address
+            items
+        );
+
+        Console.WriteLine(result ? "✅ Gallery saved on-chain!" : "❌ Failed to save.");
     }
 
 }

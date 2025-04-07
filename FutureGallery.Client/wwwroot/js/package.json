@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "web3Interop.js",
   "scripts": {
+    "bundle-web3": "esbuild web3Interop.js --bundle --outfile=web3Interop.bundle.js --format=iife --global-name=lukso --target=esnext",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -10,7 +11,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@lukso/up-provider": "^0.3.5"
+    "@lukso/up-provider": "^0.3.5",
+    "ethers": "^6.13.5"
   },
   "devDependencies": {
     "esbuild": "^0.25.2"
