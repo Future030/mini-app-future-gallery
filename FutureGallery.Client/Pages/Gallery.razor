@@ -1,22 +1,19 @@
 @page "/"
 @layout MainLayout
 
-<h2>My NFT Gallery</h2>
-
 <div class="gallery-grid">
     @foreach (var nft in Nfts)
     {
-    <GalleryCard Title="@nft.Title"
-                 Metadata="@nft.Metadata"
-                 ImageUrl="@nft.ImageUrl"
-                 LikeCount="@nft.LikeCount"
-                 Liked="@nft.Liked"
-                 OnLikeToggled="(liked) => nft.Liked = liked" />
+        <GalleryCard Title="@nft.Title"
+                     Metadata="@nft.Metadata"
+                     ImageUrl="@nft.ImageUrl"
+                     LikeCount="@nft.LikeCount"
+                     Liked="@nft.Liked"
+                     OnLikeToggled="(liked) => nft.Liked = liked" />
     }
 </div>
 
 @code {
-
     private List<NftItem> Nfts = new()
     {
         new() { Title = "WAVES", Metadata = "Artist: Luma | Edition 1/10", ImageUrl = "assets/nft1.jpg", LikeCount = 42 },
@@ -28,5 +25,4 @@
         new() { Title = "PLASMA CORE", Metadata = "Artist: Toshi | Edition 4/10", ImageUrl = "assets/nft7.jpg", LikeCount = 5 },
         new() { Title = "GHOST SEASON", Metadata = "Artist: Xone | Edition 3/4", ImageUrl = "assets/nft8.jpg", LikeCount = 13 }
     };
-
 }

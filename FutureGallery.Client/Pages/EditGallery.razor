@@ -1,32 +1,28 @@
 @page "/edit"
 @layout MainLayout
 
-<h2>Edit My Gallery</h2>
+<h2 class="rz-text-center rz-mb-4">Edit My Gallery</h2>
 
 <RadzenDropZoneContainer TItem="NftItem"
                          Data="@AllNfts"
                          ItemSelector="@ItemSelector"
                          Drop="@OnDrop">
-
     <ChildContent>
-        <RadzenStack Orientation="Orientation.Horizontal"
-                     Gap="1rem"
-                     Wrap="FlexWrap.Wrap"
-                     class="rz-p-12">
+        <div class="edit-zone-wrapper rz-p-4 rz-gap-4 rz-display-flex rz-flex-wrap">
+            <div class="zone-box rz-flex-grow-1 rz-border-radius-2 rz-p-3 rz-shadow-md rz-background-color-info-lighter">
+                <RadzenText Text="🎯 Selected NFTs (Max 8)" TextStyle="TextStyle.Subtitle2" />
+                <RadzenDropZone TItem="NftItem"
+                                Value="@( "Selected" )"
+                                class="edit-grid rz-mt-2" />
+            </div>
 
-            <RadzenDropZone Value="@( "Selected" )"
-                            class="rz-display-flex rz-flex-column rz-background-color-info-lighter rz-border-info-light rz-border-radius-2 rz-p-4"
-                            Style="flex: 1; gap: 1rem;">
-                <RadzenText Text="Selected NFTs (Max 8)" TextStyle="TextStyle.Subtitle2" />
-            </RadzenDropZone>
-
-            <RadzenDropZone Value="@( "Available" )"
-                            class="rz-display-flex rz-flex-column rz-background-color-warning-lighter rz-border-warning-light rz-border-radius-2 rz-p-4"
-                            Style="flex: 1; gap: 1rem;">
-                <RadzenText Text="Available NFTs" TextStyle="TextStyle.Subtitle2" />
-            </RadzenDropZone>
-
-        </RadzenStack>
+            <div class="zone-box rz-flex-grow-1 rz-border-radius-2 rz-p-3 rz-shadow-md rz-background-color-warning-lighter">
+                <RadzenText Text="📦 Available NFTs" TextStyle="TextStyle.Subtitle2" />
+                <RadzenDropZone TItem="NftItem"
+                                Value="@( "Available" )"
+                                class="edit-grid rz-mt-2" />
+            </div>
+        </div>
     </ChildContent>
 
     <Template Context="item">
@@ -36,14 +32,15 @@
     </Template>
 </RadzenDropZoneContainer>
 
-<!-- Save Button -->
-<div class="save-button" style="margin-top: 2rem;">
+<div class="rz-mt-4 rz-text-center">
     <RadzenButton Text="💾 Save Gallery"
                   Click="@SaveGallery"
-                  Disabled="@(!SelectedNfts.Any())" />
+                  Disabled="@(!SelectedNfts.Any())"
+                  Style="min-width: 200px;" />
 </div>
 
 @code {
+
     private List<NftItem> AllNfts = new()
     {
         new() { Title = "WAVES", Metadata = "Artist: Luma", ImageUrl = "assets/nft1.jpg", LikeCount = 42, Status = "Available" },
@@ -58,17 +55,52 @@
 
     private List<NftItem> SelectedNfts => AllNfts.Where(n => n.Status == "Selected").ToList();
 
-    private bool ItemSelector(NftItem item, RadzenDropZone<NftItem> zone)
-        => item.Status == (string)zone.Value;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+    private string? VisitorUP;
+    private string? HostUP;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await WaitForJsInterop();
+
+        try
+        {
+            VisitorUP = await JS.InvokeAsync<string>("lukso.getVisitorUP");
+            HostUP = await JS.InvokeAsync<string>("lukso.getHostUP");
+
+            Console.WriteLine($"🧑 VisitorUP: {VisitorUP}");
+            Console.WriteLine($"🏠 HostUP: {HostUP}");
+        }
+        catch (JSException jsEx)
+        {
+            Console.Error.WriteLine("🚨 JS error during UP fetch: " + jsEx.Message);
+        }
+    }
+
+    private async Task WaitForJsInterop()
+    {
+        var maxTries = 20;
+        var delay = 250;
+
+        for (int i = 0; i < maxTries; i++)
+        {
+            var luksoAvailable = await JS.InvokeAsync<bool>("eval", "typeof window.lukso !== 'undefined'");
+            if (luksoAvailable) return;
+
+            await Task.Delay(delay);
+        }
+
+        throw new Exception("⚠️ Timeout waiting for 'lukso' object in JS.");
+    }
+
+    private bool ItemSelector(NftItem item, RadzenDropZone<NftItem> zone) =>
+        item.Status == (string)zone.Value;
 
     private void OnDrop(RadzenDropZoneItemEventArgs<NftItem> args)
     {
         if (args.FromZone != args.ToZone)
-        {
             args.Item.Status = (string)args.ToZone.Value;
-        }
 
-        // Optional: reorder items when dropped within same zone
         if (args.ToItem != null && args.ToItem != args.Item)
         {
             AllNfts.Remove(args.Item);
@@ -81,10 +113,7 @@
     {
         Console.WriteLine("Saving gallery...");
         foreach (var nft in SelectedNfts)
-        {
             Console.WriteLine($"- {nft.Title}");
-        }
-
-        // TODO: Step 6 – On-chain call to updateGalleryBulk
     }
+
 }

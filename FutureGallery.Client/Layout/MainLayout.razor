@@ -1,8 +1,15 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <div class="main-layout">
     <header class="gallery-header">
         <h1>FUTURE GALLERY</h1>
+
+        @if (CanToggleMode)
+        {
+            <button class="toggle-mode-button" @onclick="ToggleMode">@ToggleButtonText</button>
+        }
     </header>
 
     <main class="content">
@@ -12,9 +19,97 @@
     <footer class="featured-gallery">
         <h3>FEATURED GALLERY</h3>
         <div class="featured-items">
-            <!-- Static featured content can go here -->
             <p>🌟 Featured Profile: lukso</p>
             <p>🖼️ Featured NFT: "Dreams on Chain"</p>
         </div>
     </footer>
 </div>
+
+<style>
+    .toggle-mode-button {
+        margin-left: 1rem;
+        padding: 0.4rem 0.7rem;
+        font-size: 0.85rem;
+        background-color: white;
+        color: #333;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .gallery-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background-color: #f6f6f6;
+        border-bottom: 1px solid #e0e0e0;
+    }
+</style>
+
+@code {
+    private string? VisitorUP;
+    private string? HostUP;
+    private DotNetObjectReference<MainLayout>? _dotNetRef;
+
+    private bool CanToggleMode => VisitorUP != null && HostUP != null && VisitorUP == HostUP;
+    private bool IsEditMode => Navigation.Uri.Contains("/edit");
+    private string ToggleButtonText => IsEditMode ? "👁️ View Gallery" : "✏️ Edit Gallery";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _dotNetRef = DotNetObjectReference.Create(this);
+        await WaitForJsInterop();
+
+        await JS.InvokeVoidAsync("lukso.registerBlazorInterop", _dotNetRef);
+        await UpdateUPsAsync();
+    }
+
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+    }
+
+    [JSInvokable("OnVisitorUpChanged")]
+    public Task OnVisitorUpChanged() => UpdateUPsAsync();
+
+    [JSInvokable("OnHostUpChanged")]
+    public Task OnHostUpChanged() => UpdateUPsAsync();
+
+    private async Task UpdateUPsAsync()
+    {
+        try
+        {
+            VisitorUP = await JS.InvokeAsync<string>("lukso.getVisitorUP");
+            HostUP = await JS.InvokeAsync<string>("lukso.getHostUP");
+            StateHasChanged();
+        }
+        catch (JSException jsEx)
+        {
+            Console.Error.WriteLine("❌ Failed to get UPs in layout: " + jsEx.Message);
+        }
+    }
+
+    private async Task WaitForJsInterop()
+    {
+        var maxTries = 20;
+        var delay = 250;
+
+        for (int i = 0; i < maxTries; i++)
+        {
+            var luksoAvailable = await JS.InvokeAsync<bool>("eval", "typeof window.lukso !== 'undefined'");
+            if (luksoAvailable)
+                return;
+
+            await Task.Delay(delay);
+        }
+
+        throw new Exception("⚠️ Timeout waiting for 'lukso' object in layout.");
+    }
+
+    private void ToggleMode()
+    {
+        var target = IsEditMode ? "/" : "/edit";
+        Navigation.NavigateTo(target);
+    }
+}
