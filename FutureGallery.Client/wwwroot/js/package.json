@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "web3Interop.js",
   "scripts": {
-    "bundle-web3": "esbuild web3Interop.js --bundle --outfile=web3Interop.bundle.js --format=iife --global-name=lukso --target=esnext",
+    "bundle-web3": "esbuild web3Interop.js --bundle --outfile=web3Interop.bundle.js --format=esm --global-name=lukso --target=esnext",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -1,24 +1,25 @@
 @page "/edit"
 @layout MainLayout
+@inject ILuksoUPProviderService UPProviderService
 
 <h2 class="rz-text-center rz-mb-4">Edit My Gallery</h2>
 
-<RadzenDropZoneContainer TItem="NftItem"
-                         Data="@AllNfts"
+<RadzenDropZoneContainer TItem="GalleryItemViewModel"
+                         Data="@AllItems"
                          ItemSelector="@ItemSelector"
                          Drop="@OnDrop">
     <ChildContent>
         <div class="edit-zone-wrapper rz-p-4 rz-gap-4 rz-display-flex rz-flex-wrap">
             <div class="zone-box rz-flex-grow-1 rz-border-radius-2 rz-p-3 rz-shadow-md rz-background-color-info-lighter">
                 <RadzenText Text="🎯 Selected NFTs (Max 8)" TextStyle="TextStyle.Subtitle2" />
-                <RadzenDropZone TItem="NftItem"
+                <RadzenDropZone TItem="GalleryItemViewModel"
                                 Value="@( "Selected" )"
                                 class="edit-grid rz-mt-2" />
             </div>
 
             <div class="zone-box rz-flex-grow-1 rz-border-radius-2 rz-p-3 rz-shadow-md rz-background-color-warning-lighter">
                 <RadzenText Text="📦 Available NFTs" TextStyle="TextStyle.Subtitle2" />
-                <RadzenDropZone TItem="NftItem"
+                <RadzenDropZone TItem="GalleryItemViewModel"
                                 Value="@( "Available" )"
                                 class="edit-grid rz-mt-2" />
             </div>
@@ -35,70 +36,58 @@
 <div class="rz-mt-4 rz-text-center">
     <RadzenButton Text="💾 Save Gallery"
                   Click="@SaveGallery"
-                  Disabled="@(!SelectedNfts.Any())"
+                  Disabled="@(!SelectedItems.Any())"
                   Style="min-width: 200px;" />
 </div>
 
 @code {
 
-    private List<NftItem> AllNfts = new();
-    private List<NftItem> SelectedNfts => AllNfts.Where(n => n.Status == "Selected").ToList();
+    private List<GalleryItemViewModel> AllItems = new();
+    private List<GalleryItemViewModel> SelectedItems => AllItems.Where(n => n.Status == "Selected").ToList();
 
     [Inject] private IJSRuntime JS { get; set; } = default!;
-    private string? VisitorUP;
-    private string? HostUP;
 
     protected override async Task OnInitializedAsync()
     {
-        var isLukso = await JS.InvokeAsync<bool>("eval", "typeof window.lukso !== 'undefined'");
-        if (!isLukso)
-        {
-            Console.WriteLine("⚠️ Not inside LUKSO Grid – skipping EditGallery init.");
-            return;
-        }
+        await UPProviderService.Initialization;
 
         try
         {
-            VisitorUP = await JS.InvokeAsync<string>("lukso.getVisitorUP");
-            HostUP = await JS.InvokeAsync<string>("lukso.getHostUP");
-
-            Console.WriteLine($"🧑 VisitorUP: {VisitorUP}");
-            Console.WriteLine($"🏠 HostUP: {HostUP}");
-
-            AllNfts = await JS.InvokeAsync<List<NftItem>>("lukso.loadMockNfts");
+            var mockIdentifiers = await JS.InvokeAsync<List<GalleryItemIdentifier>>("f030Lukso.loadMockGalleryItems");
+            AllItems = mockIdentifiers.ToViewModels();
         }
         catch (JSException jsEx)
         {
-            Console.Error.WriteLine("🚨 JS error during UP fetch: " + jsEx.Message);
+            await Console.Error.WriteLineAsync("🚨 JS error during UP fetch: " + jsEx.Message);
         }
     }
 
-    private bool ItemSelector(NftItem item, RadzenDropZone<NftItem> zone) =>
+    private bool ItemSelector(GalleryItemViewModel item, RadzenDropZone<GalleryItemViewModel> zone) =>
         item.Status == (string)zone.Value;
 
-    private void OnDrop(RadzenDropZoneItemEventArgs<NftItem> args)
+    private void OnDrop(RadzenDropZoneItemEventArgs<GalleryItemViewModel> args)
     {
         if (args.FromZone != args.ToZone)
             args.Item.Status = (string)args.ToZone.Value;
 
         if (args.ToItem != null && args.ToItem != args.Item)
         {
-            AllNfts.Remove(args.Item);
-            var insertIndex = AllNfts.IndexOf(args.ToItem);
-            AllNfts.Insert(insertIndex, args.Item);
+            AllItems.Remove(args.Item);
+            var insertIndex = AllItems.IndexOf(args.ToItem);
+            AllItems.Insert(insertIndex, args.Item);
         }
     }
 
     private async void SaveGallery()
     {
-        var items = SelectedNfts.Select(nft => new
+        var items = SelectedItems.Select(nft => new
         {
             tokenContract = "0x1234567890abcdef...", // 🔁 replace with actual logic later
             tokenId = "0x" + Guid.NewGuid().ToString("N").PadRight(64, '0') // 🔁 placeholder
         }).ToList();
 
         var result = await JS.InvokeAsync<bool>(
-            "lukso.saveGallery",
+            "f030Lukso.saveGallery",
             "0x863382cD5B07e9Cd70f198Dec5D04e4cB90f035c", // ✅ your deployed contract address
             items
         );

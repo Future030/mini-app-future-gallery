@@ -1,5 +1,5 @@
-﻿@inject IJSRuntime JSRuntime
-@implements IAsyncDisposable
+﻿@inject ILuksoUPProviderService LuksoUPProviderService
+@using FutureGallery.Client.Services
 
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
@@ -14,49 +14,13 @@
 </Router>
 
 @code {
-    private DotNetObjectReference<App>? _dotNetRef;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            try
-            {
-                var available = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.lukso !== 'undefined'");
-                if (available)
-                {
-                    _dotNetRef = DotNetObjectReference.Create(this);
-                    await JSRuntime.InvokeVoidAsync("lukso.registerBlazorInterop", _dotNetRef);
-                }
-                else
-                {
-                    Console.WriteLine("⚠️ Not running inside LUKSO Grid — skipping registerBlazorInterop.");
-                }
-            }
-            catch (JSException ex)
-            {
-                Console.WriteLine("❌ JS error during registerBlazorInterop: " + ex.Message);
-            }
+            _ = LuksoUPProviderService.InitializeAsync();
         }
-    }
 
-    [JSInvokable]
-    public Task OnVisitorUpChanged()
-    {
-        Console.WriteLine("🔄 Visitor UP changed (from JS)");
         return Task.CompletedTask;
-    }
-
-    [JSInvokable]
-    public Task OnHostUpChanged()
-    {
-        Console.WriteLine("🔄 Host UP changed (from JS)");
-        return Task.CompletedTask;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        _dotNetRef?.Dispose();
-        await Task.CompletedTask;
     }
 }

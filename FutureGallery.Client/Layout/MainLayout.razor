@@ -1,6 +1,6 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
+@inject ILuksoUPProviderService UPService
 
 <div class="main-layout">
     <header class="gallery-header">
@@ -48,58 +48,25 @@
 </style>
 
 @code {
-    private string? VisitorUP;
-    private string? HostUP;
-    private DotNetObjectReference<MainLayout>? _dotNetRef;
+    private bool CanToggleMode =>
+        UPService.VisitorUP != null &&
+        UPService.HostUP != null &&
+        UPService.VisitorUP == UPService.HostUP;
 
-    private bool CanToggleMode => VisitorUP != null && HostUP != null && VisitorUP == HostUP;
     private bool IsEditMode => Navigation.Uri.Contains("/edit");
     private string ToggleButtonText => IsEditMode ? "👁️ View Gallery" : "✏️ Edit Gallery";
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await IsLuksoAvailable()) return;
-
-        _dotNetRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("lukso.registerBlazorInterop", _dotNetRef);
-        await UpdateUPsAsync();
+        UPService.UPChangedAsync += OnUPChanged;
+        await UPService.Initialization;
+        StateHasChanged(); // trigger initial display update
     }
 
-    private async Task<bool> IsLuksoAvailable()
+    private Task OnUPChanged(string? visitor, string? host)
     {
-        try
-        {
-            return await JS.InvokeAsync<bool>("eval", "typeof window.lukso !== 'undefined'");
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    public void Dispose()
-    {
-        _dotNetRef?.Dispose();
-    }
-
-    [JSInvokable("OnVisitorUpChanged")]
-    public Task OnVisitorUpChanged() => UpdateUPsAsync();
-
-    [JSInvokable("OnHostUpChanged")]
-    public Task OnHostUpChanged() => UpdateUPsAsync();
-
-    private async Task UpdateUPsAsync()
-    {
-        try
-        {
-            VisitorUP = await JS.InvokeAsync<string>("lukso.getVisitorUP");
-            HostUP = await JS.InvokeAsync<string>("lukso.getHostUP");
-            StateHasChanged();
-        }
-        catch (JSException jsEx)
-        {
-            Console.Error.WriteLine("❌ Failed to get UPs in layout: " + jsEx.Message);
-        }
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private void ToggleMode()
@@ -108,4 +75,8 @@
         Navigation.NavigateTo(target);
     }
 
+    public void Dispose()
+    {
+        UPService.UPChangedAsync -= OnUPChanged;
+    }
 }

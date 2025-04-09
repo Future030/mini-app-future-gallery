@@ -2,48 +2,66 @@ import { createClientUPProvider } from "@lukso/up-provider";
 import { ethers } from "ethers";
 import abi from "../abi/FutureGallery.json";
 
-window.addEventListener("unhandledrejection", function (event) {
-    const message = event.reason?.message || event.reason;
-
-    if (typeof message === "string" && message.includes("No UP found")) {
-        console.warn("⚠️ Suppressed known benign UP Provider error: 'No UP found'");
-        event.preventDefault(); // suppress default console logging
+export async function initF030Lukso() {
+    if(typeof window.f030Lukso !== 'undefined') {
+        console.warn("⚠️ initF030Lukso already called. Skipping.");
+        return;
     }
-});
 
-async function init() {
+    function fallbackF030Lukso(isHostedMiniApp) {
+        return {
+            isHostedMiniApp,
+            getVisitorUP: () => null,
+            getHostUP: () => null,
+            isConnected: () => false,
+            registerBlazorInterop: () => {},
+            getGallery: async () => null,
+            saveGallery: async () => false,
+            loadMockGalleryItems: async () => []
+        };
+    }
+    
     try {
+        window.addEventListener("unhandledrejection", function (event) {
+            const message = event.reason?.message || event.reason;
+
+            if (typeof message === "string" && message.includes("No UP found")) {
+                console.warn("⚠️ Suppressed known benign UP Provider error: 'No UP found'");
+                event.preventDefault(); // suppress default console logging
+            }
+        });
+        
         const upProvider = await createClientUPProvider();
 
         const hosted = upProvider.isMiniApp;
 
         if (!hosted) {
             console.warn("⚠️ Not running as hosted mini-app — skipping UP provider init.");
-            window.lukso = fallbackLukso(false);
+            window.f030Lukso = fallbackLukso(false);
             return;
         }
 
         const getBrowserProvider = () =>
             new ethers.BrowserProvider(upProvider.ethereum ?? upProvider);
 
-        window.lukso = {
+        window.f030Lukso = {
             isHostedMiniApp: true,
 
             getVisitorUP: () => upProvider.accounts?.[0] || null,
             getHostUP: () => upProvider.contextAccounts?.[0] || null,
             isConnected: () => upProvider.profileConnected || false,
 
-            registerBlazorInterop: (dotNetRef) => {
+            registerBlazorInterop: (dotNetRef, onVisitorUPChangedCallbackName, onHostUPChangedCallbackName) => {
                 if (!dotNetRef) return;
 
                 upProvider.on("accountsChanged", (accounts) => {
                     console.log("🔄 VisitorUP changed:", accounts);
-                    dotNetRef.invokeMethodAsync("OnVisitorUpChanged");
+                    dotNetRef.invokeMethodAsync(onVisitorUPChangedCallbackName);
                 });
 
                 upProvider.on("contextAccountsChanged", (contextAccounts) => {
                     console.log("🔄 HostUP changed:", contextAccounts);
-                    dotNetRef.invokeMethodAsync("OnHostUpChanged");
+                    dotNetRef.invokeMethodAsync(onHostUPChangedCallbackName);
                 });
             },
 
@@ -83,65 +101,34 @@ async function init() {
                 }
             },
 
-            loadMockNfts: async () => {
+            loadMockGalleryItems: async () => {
                 return [
                     {
-                        title: "WAVES",
-                        metadata: "Artist: Luma | Edition 1/10",
-                        imageUrl: "assets/nft1.jpg",
-                        likeCount: 42,
-                        liked: false,
-                        status: "Available"
+                        tokenContract: "0x1234567890abcdef1234567890abcdef12345678",
+                        tokenId: "" // LSP7
                     },
                     {
-                        title: "NEON BLOOM",
-                        metadata: "Artist: Jay | Edition 3/10",
-                        imageUrl: "assets/nft2.jpg",
-                        likeCount: 12,
-                        liked: false,
-                        status: "Available"
+                        tokenContract: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+                        tokenId: "0x" + "1".padStart(64, "0") // LSP8
                     },
                     {
-                        title: "THE DREAMER",
-                        metadata: "Artist: Sora | Edition 1/1",
-                        imageUrl: "assets/nft3.jpg",
-                        likeCount: 7,
-                        liked: false,
-                        status: "Available"
+                        tokenContract: "0x99887766554433221100ffeeddccbbaa11223344",
+                        tokenId: "" // LSP7
                     },
                     {
-                        title: "DARKNET",
-                        metadata: "Artist: Meka | Edition 5/10",
-                        imageUrl: "assets/nft4.jpg",
-                        likeCount: 66,
-                        liked: false,
-                        status: "Available"
+                        tokenContract: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+                        tokenId: "0x" + "abc".padStart(64, "0") // LSP8
                     }
                 ];
             }
         };
 
-        console.log("🧑 VisitorUP:", window.lukso.getVisitorUP());
-        console.log("🏠 HostUP:", window.lukso.getHostUP());
-        console.log("🔌 Connected:", window.lukso.isConnected());
+        console.log("🧑 VisitorUP:", window.f030Lukso.getVisitorUP());
+        console.log("🏠 HostUP:", window.f030Lukso.getHostUP());
+        console.log("🔌 Connected:", window.f030Lukso.isConnected());
 
     } catch (err) {
         console.warn("⚠️ Failed to initialize UP provider or not running as mini-app:", err);
-        window.lukso = fallbackLukso(false);
+        window.f030Lukso = fallbackF030Lukso(false);
     }
 }
-
-function fallbackLukso(isHostedMiniApp) {
-    return {
-        isHostedMiniApp,
-        getVisitorUP: () => null,
-        getHostUP: () => null,
-        isConnected: () => false,
-        registerBlazorInterop: () => {},
-        getGallery: async () => null,
-        saveGallery: async () => false,
-        loadMockNfts: async () => []
-    };
-}
-
-init();
