@@ -34,9 +34,10 @@ public class LuksoUPProviderService(IJSRuntime jsRuntime) : ILuksoUPProviderServ
             if (_isInitialized)
                 return;
 
-            var web3InteropModule = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/web3Interop.bundle.js");
-            await web3InteropModule.InvokeVoidAsync("initF030Lukso");
+            // var web3InteropModule = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/web3Interop.bundle.js?v=1.0.15");
+            // await web3InteropModule.InvokeVoidAsync("initF030Lukso");
 
+            await jsRuntime.InvokeVoidAsync("initF030Lukso");
             var available = await jsRuntime.InvokeAsync<bool>("eval", "typeof window.f030Lukso !== 'undefined' && window.f030Lukso.isHostedMiniApp");
 
             if (available)

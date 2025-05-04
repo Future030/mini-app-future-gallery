@@ -80,19 +80,27 @@
 
     private async void SaveGallery()
     {
-        var items = SelectedItems.Select(nft => new
+        const string contractAddress = "0x863382cD5B07e9Cd70f198Dec5D04e4cB90f035c"; // your deployed contract
+
+        var items = SelectedItems.Select(i => new
         {
-            tokenContract = "0x1234567890abcdef...", // 🔁 replace with actual logic later
-            tokenId = "0x" + Guid.NewGuid().ToString("N").PadRight(64, '0') // 🔁 placeholder
+            tokenContract = i.TokenContract,
+            tokenId = EnsureBytes32(i.TokenId)
         }).ToList();
 
         var result = await JS.InvokeAsync<bool>(
             "f030Lukso.saveGallery",
-            "0x863382cD5B07e9Cd70f198Dec5D04e4cB90f035c", // ✅ your deployed contract address
+            contractAddress,
             items
         );
 
         Console.WriteLine(result ? "✅ Gallery saved on-chain!" : "❌ Failed to save.");
     }
 
+    private string EnsureBytes32(string? tokenId)
+    {
+        if (string.IsNullOrWhiteSpace(tokenId))
+            return "0x" + new string('0', 64); // LSP7 default
+        return tokenId.StartsWith("0x") ? tokenId : "0x" + tokenId.PadLeft(64, '0');
+    }
 }
